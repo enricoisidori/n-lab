@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Viewer</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #000;
+      }
+      canvas {
+        display: block;
+      }
+      #controls {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 20px;
+        border-radius: 10px;
+        color: white;
+        font-family: Arial, sans-serif;
+        max-width: 300px;
+        z-index: 1000;
+      }
+      .control-group {
+        margin-bottom: 20px;
+      }
+      .control-group h3 {
+        margin: 0 0 10px 0;
+        font-size: 16px;
+        color: #fff;
+      }
+      .control-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      label {
+        flex: 1;
+        font-size: 14px;
+        color: #ccc;
+      }
+      input[type="range"] {
+        flex: 2;
+        margin: 0 10px;
+      }
+      input[type="checkbox"] {
+        margin-right: 10px;
+      }
+      select {
+        flex: 2;
+        margin: 0 10px;
+        background: #333;
+        color: white;
+        border: 1px solid #555;
+        padding: 5px;
+        border-radius: 4px;
+      }
+      .value-display {
+        min-width: 40px;
+        text-align: right;
+        font-size: 14px;
+        color: #aaa;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="controls">
+      <div class="control-group">
+        <h3>Threshold Controls</h3>
+        <div class="control-row">
+          <label for="threshold">Threshold</label>
+          <input
+            type="range"
+            id="threshold"
+            min="0"
+            max="1"
+            step="0.01"
+            value="0.5"
+          />
+          <span class="value-display" id="threshold-value">0.50</span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h3>Blur Controls</h3>
+        <div class="control-row">
+          <label for="blur-layer">Blur Layer</label>
+          <input type="checkbox" id="blur-layer" checked />
+        </div>
+        <div class="control-row">
+          <label for="blur-amount">Blur Amount</label>
+          <input
+            type="range"
+            id="blur-amount"
+            min="0"
+            max="0.1"
+            step="0.001"
+            value="0.0"
+          />
+          <span class="value-display" id="blur-amount-value">0.000</span>
+        </div>
+        <div class="control-row">
+          <label for="max-blur-amount">Max Blur Amount</label>
+          <input
+            type="range"
+            id="max-blur-amount"
+            min="0"
+            max="0.5"
+            step="0.01"
+            value="0.11"
+          />
+          <span class="value-display" id="max-blur-amount-value">0.11</span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h3>Noise Controls</h3>
+        <div class="control-row">
+          <label for="noise-layer">Noise Layer</label>
+          <input type="checkbox" id="noise-layer" />
+        </div>
+        <div class="control-row">
+          <label for="noise-amount">Noise Amount</label>
+          <input
+            type="range"
+            id="noise-amount"
+            min="0"
+            max="0.2"
+            step="0.01"
+            value="0.05"
+          />
+          <span class="value-display" id="noise-amount-value">0.05</span>
+        </div>
+        <div class="control-row">
+          <label for="noise-scale">Noise Scale</label>
+          <input
+            type="range"
+            id="noise-scale"
+            min="1"
+            max="20"
+            step="1"
+            value="5"
+          />
+          <span class="value-display" id="noise-scale-value">5</span>
+        </div>
+        <div class="control-row">
+          <label for="noise-speed">Noise Speed</label>
+          <input
+            type="range"
+            id="noise-speed"
+            min="0"
+            max="0.02"
+            step="0.001"
+            value="0.005"
+          />
+          <span class="value-display" id="noise-speed-value">0.005</span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h3>Bright Noise Controls</h3>
+        <div class="control-row">
+          <label for="bright-noise-layer">Bright Noise Layer</label>
+          <input type="checkbox" id="bright-noise-layer" />
+        </div>
+        <div class="control-row">
+          <label for="bright-noise-amount">Bright Noise Amount</label>
+          <input
+            type="range"
+            id="bright-noise-amount"
+            min="0"
+            max="0.5"
+            step="0.01"
+            value="0.1"
+          />
+          <span class="value-display" id="bright-noise-amount-value">0.10</span>
+        </div>
+        <div class="control-row">
+          <label for="bright-noise-scale">Bright Noise Scale</label>
+          <input
+            type="range"
+            id="bright-noise-scale"
+            min="1"
+            max="50"
+            step="1"
+            value="10"
+          />
+          <span class="value-display" id="bright-noise-scale-value">10</span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h3>Mouse Light Controls</h3>
+        <div class="control-row">
+          <label for="mouse-light-layer">Mouse Light Layer</label>
+          <input type="checkbox" id="mouse-light-layer" />
+        </div>
+        <div class="control-row">
+          <label for="light-intensity">Light Intensity</label>
+          <input
+            type="range"
+            id="light-intensity"
+            min="0"
+            max="1"
+            step="0.01"
+            value="0.2"
+          />
+          <span class="value-display" id="light-intensity-value">0.20</span>
+        </div>
+        <div class="control-row">
+          <label for="light-radius">Light Radius</label>
+          <input
+            type="range"
+            id="light-radius"
+            min="0.1"
+            max="1"
+            step="0.01"
+            value="0.2"
+          />
+          <span class="value-display" id="light-radius-value">0.20</span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h3>Brush Controls</h3>
+        <div class="control-row">
+          <label for="brush-hardness">Brush Hardness</label>
+          <input
+            type="range"
+            id="brush-hardness"
+            min="0"
+            max="1"
+            step="0.01"
+            value="0.5"
+          />
+          <span class="value-display" id="brush-hardness-value">0.50</span>
+        </div>
+        <div class="control-row">
+          <label for="brush-intensity">Brush Intensity</label>
+          <input
+            type="range"
+            id="brush-intensity"
+            min="0"
+            max="2"
+            step="0.1"
+            value="1.0"
+          />
+          <span class="value-display" id="brush-intensity-value">1.00</span>
+        </div>
+        <div class="control-row">
+          <label for="brush-scale">Brush Scale</label>
+          <input
+            type="range"
+            id="brush-scale"
+            min="0.1"
+            max="10"
+            step="0.1"
+            value="2.6"
+          />
+          <span class="value-display" id="brush-scale-value">2.60</span>
+        </div>
+        <div class="control-row">
+          <label for="brush-type">Brush Type</label>
+          <select id="brush-type">
+            <option value="0">Circular</option>
+            <option value="1">Square</option>
+            <option value="2">Noise</option>
+          </select>
+        </div>
+        <div class="control-row">
+          <label for="brush-speed">Brush Speed</label>
+          <input
+            type="range"
+            id="brush-speed"
+            min="0"
+            max="2"
+            step="0.1"
+            value="0.5"
+          />
+          <span class="value-display" id="brush-speed-value">0.50</span>
+        </div>
+        <div class="control-row">
+          <label for="brush-pulse">Brush Pulse</label>
+          <input
+            type="range"
+            id="brush-pulse"
+            min="0"
+            max="1"
+            step="0.01"
+            value="0.0"
+          />
+          <span class="value-display" id="brush-pulse-value">0.00</span>
+        </div>
+        <div class="control-row">
+          <label for="brush-trail">Brush Trail</label>
+          <input
+            type="range"
+            id="brush-trail"
+            min="0"
+            max="1"
+            step="0.01"
+            value="0.0"
+          />
+          <span class="value-display" id="brush-trail-value">0.00</span>
+        </div>
+        <div class="control-row">
+          <label for="brush-rotation">Brush Rotation</label>
+          <input
+            type="range"
+            id="brush-rotation"
+            min="0"
+            max="6.28"
+            step="0.01"
+            value="0.0"
+          />
+          <span class="value-display" id="brush-rotation-value">0.00</span>
+        </div>
+        <div class="control-row">
+          <label for="brush-color">Brush Color</label>
+          <input
+            type="range"
+            id="brush-color"
+            min="0"
+            max="1"
+            step="0.01"
+            value="1.0"
+          />
+          <span class="value-display" id="brush-color-value">1.00</span>
+        </div>
+        <div class="control-row">
+          <label for="brush-blend-mode">Brush Blend Mode</label>
+          <select id="brush-blend-mode">
+            <option value="0">Normal</option>
+            <option value="1">Additive</option>
+            <option value="2">Subtractive</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="sketch-7.js"></script>
+  </body>
+</html>

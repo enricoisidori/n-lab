@@ -3,269 +3,104 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Directional Blur Effect</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <title>Image Viewer</title>
     <style>
       body {
         margin: 0;
+        padding: 0;
         overflow: hidden;
-        background: #000;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        width: 100vw;
+        background-color: #000;
       }
       canvas {
-        width: 100vw !important;
-        height: auto !important;
-        max-height: 100vh;
-        object-fit: contain;
+        display: block;
       }
       #controls {
         position: fixed;
         top: 20px;
-        left: 20px;
-        background: rgba(0, 0, 0, 0.7);
-        padding: 20px;
-        border-radius: 10px;
+        right: 20px;
+        background-color: rgba(0, 0, 0, 0.7);
+        padding: 15px;
+        border-radius: 8px;
         color: white;
         font-family: Arial, sans-serif;
-        z-index: 100;
+        max-width: 300px;
+        max-height: 80vh;
+        overflow-y: auto;
       }
       .control-group {
         margin-bottom: 15px;
       }
-      .control-group label {
+      .control-group h3 {
+        margin-top: 0;
+        margin-bottom: 10px;
+        font-size: 16px;
+      }
+      label {
         display: block;
         margin-bottom: 5px;
+        font-size: 14px;
       }
-      .control-group input {
-        width: 200px;
+      input[type="range"] {
+        width: 100%;
+        margin-bottom: 5px;
       }
       .value-display {
-        display: inline-block;
-        margin-left: 10px;
-        min-width: 40px;
-      }
-      .layer-control {
-        display: flex;
-        align-items: center;
+        font-size: 12px;
         margin-bottom: 10px;
       }
-      .layer-control input[type="checkbox"] {
-        width: auto;
-        margin-right: 10px;
+      input[type="checkbox"] {
+        margin-right: 5px;
       }
     </style>
   </head>
   <body>
     <div id="controls">
-      <div class="layer-control">
-        <input type="checkbox" id="background-layer" />
-        <label for="background-layer">Background Image</label>
-      </div>
-
       <div class="control-group">
-        <label
-          >Threshold
-          <span id="threshold-value" class="value-display">0.5</span></label
-        >
+        <h3>Brush Controls</h3>
+        <label>
+          <input type="checkbox" id="brush-active" checked />
+          Enable Brush
+        </label>
+        <label for="brush-size">Brush Size:</label>
         <input
           type="range"
-          id="threshold"
-          min="0"
-          max="1"
-          step="0.01"
-          value="0.5"
-        />
-      </div>
-
-      <div class="layer-control">
-        <input type="checkbox" id="blur-layer" checked />
-        <label for="blur-layer">Blur Layer</label>
-      </div>
-
-      <div class="control-group" id="blur-controls">
-        <label
-          >Blur Amount
-          <span id="blur-amount-value" class="value-display">0.000</span></label
-        >
-        <input
-          type="range"
-          id="blur-amount"
-          min="0"
-          max="0.1"
-          step="0.001"
-          value="0.000"
-        />
-        <label
-          >Max Blur Amount
-          <span id="max-blur-amount-value" class="value-display"
-            >0.11</span
-          ></label
-        >
-        <input
-          type="range"
-          id="max-blur-amount"
+          id="brush-size"
           min="0.01"
-          max="0.2"
-          step="0.01"
-          value="0.11"
-        />
-      </div>
-
-      <div class="layer-control">
-        <input type="checkbox" id="noise-layer" />
-        <label for="noise-layer">Base Noise Layer</label>
-      </div>
-
-      <div class="control-group" id="noise-controls">
-        <label
-          >Noise Amount
-          <span id="noise-amount-value" class="value-display">0.05</span></label
-        >
-        <input
-          type="range"
-          id="noise-amount"
-          min="0"
           max="0.5"
           step="0.01"
-          value="0.05"
+          value="0.1"
         />
-        <label
-          >Noise Scale
-          <span id="noise-scale-value" class="value-display">5</span></label
-        >
-        <input
-          type="range"
-          id="noise-scale"
-          min="1"
-          max="50"
-          step="1"
-          value="5"
-        />
-        <label
-          >Noise Speed
-          <span id="noise-speed-value" class="value-display">0.005</span></label
-        >
-        <input
-          type="range"
-          id="noise-speed"
-          min="0"
-          max="0.05"
-          step="0.001"
-          value="0.005"
-        />
-      </div>
-
-      <!-- Nuovi controlli per il brush del mouse -->
-      <div class="control-group">
-        <h3>Brush Settings</h3>
-
-        <label for="brush-hardness">Brush Hardness</label>
+        <div class="value-display">
+          Value: <span id="brush-size-value">0.1</span>
+        </div>
+        <label for="brush-hardness">Brush Hardness:</label>
         <input
           type="range"
           id="brush-hardness"
-          min="0"
-          max="1"
-          step="0.01"
-          value="0.5"
-        />
-        <span id="brush-hardness-value" class="value-display">0.50</span>
-
-        <label for="brush-intensity">Brush Intensity</label>
-        <input
-          type="range"
-          id="brush-intensity"
-          min="0"
-          max="2"
-          step="0.01"
-          value="1.0"
-        />
-        <span id="brush-intensity-value" class="value-display">1.00</span>
-
-        <label for="brush-scale">Brush Scale</label>
-        <input
-          type="range"
-          id="brush-scale"
           min="0.1"
-          max="5"
+          max="1.0"
           step="0.1"
-          value="2.6"
-        />
-        <span id="brush-scale-value" class="value-display">2.60</span>
-
-        <label for="brush-type">Brush Type</label>
-        <select id="brush-type">
-          <option value="0">Circolare</option>
-          <option value="1">Quadrato</option>
-          <option value="2">Noise</option>
-        </select>
-
-        <label for="brush-speed">Brush Speed</label>
-        <input
-          type="range"
-          id="brush-speed"
-          min="0"
-          max="2"
-          step="0.01"
           value="0.5"
         />
-        <span id="brush-speed-value" class="value-display">0.50</span>
-
-        <label for="brush-pulse">Brush Pulse</label>
+        <div class="value-display">
+          Value: <span id="brush-hardness-value">0.5</span>
+        </div>
+        <label for="brush-opacity">Brush Opacity:</label>
         <input
           type="range"
-          id="brush-pulse"
-          min="0"
-          max="1"
-          step="0.01"
-          value="0.0"
+          id="brush-opacity"
+          min="0.1"
+          max="1.0"
+          step="0.1"
+          value="0.5"
         />
-        <span id="brush-pulse-value" class="value-display">0.00</span>
-
-        <label for="brush-trail">Brush Trail</label>
-        <input
-          type="range"
-          id="brush-trail"
-          min="0"
-          max="1"
-          step="0.01"
-          value="0.0"
-        />
-        <span id="brush-trail-value" class="value-display">0.00</span>
-
-        <label for="brush-rotation">Brush Rotation</label>
-        <input
-          type="range"
-          id="brush-rotation"
-          min="0"
-          max="6.28"
-          step="0.01"
-          value="0.0"
-        />
-        <span id="brush-rotation-value" class="value-display">0.00</span>
-
-        <label for="brush-color">Brush Color</label>
-        <input
-          type="range"
-          id="brush-color"
-          min="0"
-          max="1"
-          step="0.01"
-          value="1.0"
-        />
-        <span id="brush-color-value" class="value-display">1.00</span>
-
-        <label for="brush-blend-mode">Brush Blend Mode</label>
-        <select id="brush-blend-mode">
-          <option value="0">Normale</option>
-          <option value="1">Additivo</option>
-          <option value="2">Sottrattivo</option>
-        </select>
+        <div class="value-display">
+          Value: <span id="brush-opacity-value">0.5</span>
+        </div>
       </div>
     </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="sketch.js"></script>
   </body>
 </html>

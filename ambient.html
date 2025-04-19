@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Ambient Scene</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: #000;
+      }
+      canvas {
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      // Scene setup
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xf5f5f5);
+
+      const camera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      document.body.appendChild(renderer.domElement);
+
+      // Orbit controls
+      const controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.screenSpacePanning = false;
+      controls.minDistance = 2;
+      controls.maxDistance = 10;
+      controls.maxPolarAngle = Math.PI / 2;
+
+      // Enhanced Lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(5, 5, 5);
+      directionalLight.castShadow = true;
+      directionalLight.shadow.mapSize.width = 2048;
+      directionalLight.shadow.mapSize.height = 2048;
+      scene.add(directionalLight);
+
+      // Add spot light for better details
+      const spotLight = new THREE.SpotLight(0xffffff, 0.5);
+      spotLight.position.set(-3, 4, -3);
+      spotLight.castShadow = true;
+      scene.add(spotLight);
+
+      // Concrete floor with texture
+      const floorMaterial = new THREE.MeshStandardMaterial({
+        color: 0x808080,
+        roughness: 0.9,
+        metalness: 0.1,
+        bumpScale: 0.02,
+      });
+
+      const floor = new THREE.Mesh(
+        new THREE.PlaneGeometry(10, 10, 100, 100),
+        floorMaterial
+      );
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.y = 0;
+      floor.receiveShadow = true;
+      scene.add(floor);
+
+      // Walls
+      const wallMaterial = new THREE.MeshStandardMaterial({
+        color: 0xf0f0f0,
+        roughness: 0.8,
+        metalness: 0.1,
+      });
+
+      // Back wall
+      const backWall = new THREE.Mesh(
+        new THREE.PlaneGeometry(10, 4),
+        wallMaterial
+      );
+      backWall.position.z = -5;
+      backWall.position.y = 2;
+      backWall.receiveShadow = true;
+      scene.add(backWall);
+
+      // Side wall
+      const sideWall = new THREE.Mesh(
+        new THREE.PlaneGeometry(10, 4),
+        wallMaterial
+      );
+      sideWall.position.x = -5;
+      sideWall.position.y = 2;
+      sideWall.rotation.y = Math.PI / 2;
+      sideWall.receiveShadow = true;
+      scene.add(sideWall);
+
+      // Schemas on walls
+      const schemaGeometry = new THREE.PlaneGeometry(1.5, 1);
+      const schemaMaterial = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        roughness: 0.4,
+        metalness: 0.1,
+      });
+
+      // Schema 1 on back wall
+      const schema1 = new THREE.Mesh(schemaGeometry, schemaMaterial);
+      schema1.position.set(0, 2, -4.95);
+      schema1.receiveShadow = true;
+      scene.add(schema1);
+
+      // Schema 2 on side wall
+      const schema2 = new THREE.Mesh(schemaGeometry, schemaMaterial);
+      schema2.position.set(-4.95, 2, -2);
+      schema2.rotation.y = Math.PI / 2;
+      schema2.receiveShadow = true;
+      scene.add(schema2);
+
+      // Function to create a single stand structure
+      function createStand(x = 0) {
+        const group = new THREE.Group();
+
+        // Main vertical stand
+        const standMaterial = new THREE.MeshStandardMaterial({
+          color: 0x666666,
+          roughness: 0.3,
+          metalness: 0.7,
+        });
+
+        // Vertical post
+        const post = new THREE.Mesh(
+          new THREE.BoxGeometry(0.05, 1.8, 0.05),
+          standMaterial
+        );
+        post.position.y = 0.9;
+        post.castShadow = true;
+        group.add(post);
+
+        // Base structure
+        const baseHeight = 0.05;
+        const baseWidth = 0.4;
+        const baseDepth = 0.4;
+
+        const base = new THREE.Mesh(
+          new THREE.BoxGeometry(baseWidth, baseHeight, baseDepth),
+          standMaterial
+        );
+        base.position.y = baseHeight / 2;
+        base.castShadow = true;
+        base.receiveShadow = true;
+        group.add(base);
+
+        // Top mechanical device (PVC black)
+        const deviceGroup = new THREE.Group();
+        deviceGroup.position.y = 1.8;
+
+        const pvcMaterial = new THREE.MeshStandardMaterial({
+          color: 0x111111,
+          roughness: 0.9,
+          metalness: 0.1,
+        });
+
+        // Main device body
+        const deviceBody = new THREE.Mesh(
+          new THREE.BoxGeometry(0.25, 0.15, 0.2),
+          pvcMaterial
+        );
+        deviceGroup.add(deviceBody);
+
+        // Additional PVC details
+        const detailsGroup = new THREE.Group();
+
+        // Top cover
+        const topCover = new THREE.Mesh(
+          new THREE.BoxGeometry(0.27, 0.02, 0.22),
+          pvcMaterial
+        );
+        topCover.position.y = 0.085;
+        detailsGroup.add(topCover);
+
+        // Ventilation slots
+        for (let i = 0; i < 3; i++) {
+          const slot = new THREE.Mesh(
+            new THREE.BoxGeometry(0.15, 0.002, 0.02),
+            new THREE.MeshStandardMaterial({ color: 0x0a0a0a })
+          );
+          slot.position.set(0, 0.076, -0.06 + i * 0.06);
+          detailsGroup.add(slot);
+        }
+
+        // Side components
+        const sideComponent = new THREE.Mesh(
+          new THREE.BoxGeometry(0.08, 0.08, 0.25),
+          pvcMaterial
+        );
+        sideComponent.position.set(0.15, 0, 0);
+        detailsGroup.add(sideComponent);
+
+        const sideComponent2 = sideComponent.clone();
+        sideComponent2.position.set(-0.15, 0, 0);
+        detailsGroup.add(sideComponent2);
+
+        // Connectors
+        const connector = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.01, 0.01, 0.05, 8),
+          new THREE.MeshStandardMaterial({ color: 0x222222 })
+        );
+        connector.rotation.z = Math.PI / 2;
+        connector.position.set(0.2, 0, 0.1);
+        detailsGroup.add(connector);
+
+        const connector2 = connector.clone();
+        connector2.position.set(0.2, 0, -0.1);
+        detailsGroup.add(connector2);
+
+        deviceGroup.add(detailsGroup);
+        group.add(deviceGroup);
+
+        // Extended cable system
+        const cablePoints = [];
+        // Vertical section
+        for (let i = 0; i < 10; i++) {
+          const y = 1.8 - i * (1.8 / 9);
+          const xOffset = Math.sin(i * 0.5) * 0.05;
+          cablePoints.push(new THREE.Vector3(xOffset, y, 0));
+        }
+        // Floor section
+        cablePoints.push(new THREE.Vector3(0, 0, 0));
+        cablePoints.push(new THREE.Vector3(0, 0, -2));
+        cablePoints.push(new THREE.Vector3(-1, 0, -2));
+        cablePoints.push(new THREE.Vector3(-1, 0, -4));
+
+        const curve = new THREE.CatmullRomCurve3(cablePoints);
+        const cableGeometry = new THREE.TubeGeometry(
+          curve,
+          50,
+          0.005,
+          8,
+          false
+        );
+        const cable = new THREE.Mesh(
+          cableGeometry,
+          new THREE.MeshStandardMaterial({
+            color: 0x000000,
+            roughness: 0.9,
+            metalness: 0.1,
+          })
+        );
+        group.add(cable);
+
+        // Position the entire structure
+        group.position.x = x;
+
+        return group;
+      }
+
+      // Create two parallel stands
+      const stand1 = createStand(-0.3);
+      const stand2 = createStand(0.3);
+      scene.add(stand1);
+      scene.add(stand2);
+
+      // Camera position
+      camera.position.set(3, 2, 3);
+      camera.lookAt(0, 0.9, 0);
+
+      // Animation
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+
+      // Handle window resize
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      animate();
+    </script>
+  </body>
+</html>

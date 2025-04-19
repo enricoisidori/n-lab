@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Waveform Generator</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 0;
+        padding: 20px;
+        background: #fff;
+        color: #000;
+      }
+      canvas {
+        border: 1px solid #ccc;
+        display: block;
+        margin-bottom: 20px;
+      }
+      .slider-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+      .slider-container {
+        display: flex;
+        flex-direction: column;
+        width: 220px;
+      }
+      label {
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-top: 20px;
+        align-items: center;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="waveCanvas" width="2750" height="1120"></canvas>
+
+    <div class="slider-group" id="global-sliders">
+      <div class="slider-container">
+        <label for="globalAmplitude"
+          >Global Amplitude = <span id="valAmplitude">0.5</span></label
+        >
+        <input
+          type="range"
+          id="globalAmplitude"
+          min="0"
+          max="1"
+          step="0.01"
+          value="0.5"
+        />
+      </div>
+      <div class="slider-container">
+        <label for="globalNoise"
+          >Global Noise = <span id="valNoise">0.3</span></label
+        >
+        <input
+          type="range"
+          id="globalNoise"
+          min="0"
+          max="1"
+          step="0.01"
+          value="0.3"
+        />
+      </div>
+      <div class="slider-container">
+        <label for="globalSmoothness"
+          >Global Smoothness = <span id="valSmoothness">20</span></label
+        >
+        <input
+          type="range"
+          id="globalSmoothness"
+          min="1"
+          max="100"
+          step="1"
+          value="20"
+        />
+      </div>
+      <div class="slider-container">
+        <label for="globalFreqJitter"
+          >Frequency Jitter = <span id="valFreqJitter">0.2</span></label
+        >
+        <input
+          type="range"
+          id="globalFreqJitter"
+          min="0"
+          max="1"
+          step="0.01"
+          value="0.2"
+        />
+      </div>
+      <div class="slider-container">
+        <label for="accentX"
+          >Accent Position (X) = <span id="valAccentX">0.5</span></label
+        >
+        <input
+          type="range"
+          id="accentX"
+          min="0"
+          max="1"
+          step="0.01"
+          value="0.5"
+        />
+      </div>
+    </div>
+
+    <div class="controls">
+      <label><input type="checkbox" id="invertColors" /> Invert Colors</label>
+      <button id="exportBtn">Export as PNG</button>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("waveCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const rows = 5;
+      const margin = 20;
+      const waveformHeight = (canvas.height - margin * (rows + 1)) / rows;
+
+      function mulberry32(seed) {
+        return function () {
+          let t = (seed += 0x6d2b79f5);
+          t = Math.imul(t ^ (t >>> 15), t | 1);
+          t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+
+      function drawWaveform(ctx, options) {
+        const {
+          x,
+          y,
+          width,
+          height,
+          density,
+          amplitude,
+          noise,
+          smoothness,
+          freqJitter,
+          seed,
+          accentX,
+        } = options;
+        const lines = Math.floor(width * density);
+        const rng = mulberry32(seed);
+
+        ctx.beginPath();
+        let phaseShift = rng() * Math.PI * 2;
+        for (let i = 0; i < lines; i++) {
+          const xpos = x + (i / lines) * width;
+          const distanceFromAccent = Math.abs(i / lines - accentX);
+          const accentFactor = Math.max(0, 1 - distanceFromAccent * 3);
+          const amp = amplitude + accentFactor * 0.4;
+
+          const localSmoothness = smoothness + rng() * smoothness * freqJitter;
+          const variation =
+            (Math.sin(i / localSmoothness + phaseShift) +
+              (rng() * 2 - 1) * noise) *
+            amp *
+            height *
+            0.5;
+          const top = y + height / 2 - variation;
+          const bottom = y + height / 2 + variation;
+
+          ctx.moveTo(xpos, top);
+          ctx.lineTo(xpos, bottom);
+        }
+        ctx.stroke();
+      }
+
+      function render() {
+        const invert = document.getElementById("invertColors").checked;
+        ctx.fillStyle = invert ? "black" : "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = invert ? "white" : "black";
+        ctx.lineWidth = 1;
+
+        const globalAmplitude = parseFloat(
+          document.getElementById("globalAmplitude").value
+        );
+        const globalNoise = parseFloat(
+          document.getElementById("globalNoise").value
+        );
+        const globalSmoothness = parseFloat(
+          document.getElementById("globalSmoothness").value
+        );
+        const globalFreqJitter = parseFloat(
+          document.getElementById("globalFreqJitter").value
+        );
+        const accentX = parseFloat(document.getElementById("accentX").value);
+
+        document.getElementById("valAmplitude").textContent = globalAmplitude;
+        document.getElementById("valNoise").textContent = globalNoise;
+        document.getElementById("valSmoothness").textContent = globalSmoothness;
+        document.getElementById("valFreqJitter").textContent = globalFreqJitter;
+        document.getElementById("valAccentX").textContent = accentX;
+
+        for (let i = 0; i < rows; i++) {
+          const y = margin + i * (waveformHeight + margin);
+          drawWaveform(ctx, {
+            x: 50,
+            y,
+            width: canvas.width - 100,
+            height: waveformHeight,
+            density: 1.0,
+            amplitude: globalAmplitude,
+            noise: globalNoise,
+            smoothness: globalSmoothness,
+            freqJitter: globalFreqJitter,
+            seed: i + 1,
+            accentX: accentX,
+          });
+        }
+      }
+
+      document
+        .querySelectorAll("input[type=range], input[type=checkbox]")
+        .forEach((input) => {
+          input.addEventListener("input", render);
+        });
+
+      document.getElementById("exportBtn").addEventListener("click", () => {
+        const link = document.createElement("a");
+        link.download = "waveform.png";
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      });
+
+      render();
+    </script>
+  </body>
+</html>
