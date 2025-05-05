@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Interactive Morph</title>
+    <style>
+      body {
+        margin: 0;
+        background: black;
+        overflow: hidden;
+        font-family: sans-serif;
+      }
+      canvas {
+        display: block;
+      }
+      #controls {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px;
+        border-radius: 8px;
+        z-index: 10;
+      }
+      #controls label {
+        display: block;
+        margin: 4px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <div id="controls">
+      <label><input type="checkbox" id="posterize" checked /> Posterize</label>
+      <label
+        ><input type="checkbox" id="noise" checked /> Noise (Midtones)</label
+      >
+      <label
+        ><input type="checkbox" id="warp" checked /> Warp (Distortion)</label
+      >
+      <label
+        ><input type="checkbox" id="dynamicThresh" checked /> Dynamic
+        Threshold</label
+      >
+      <label
+        >Morph
+        <input type="range" id="morph" min="0" max="1" step="0.01" />
+      </label>
+      <label><input type="checkbox" id="autoMorph" checked /> Auto Morph</label>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("c");
+      const ctx = canvas.getContext("2d");
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const scale = 0.3;
+      const w = Math.floor(canvas.width * scale);
+      const h = Math.floor(canvas.height * scale);
+      const buffer = ctx.createImageData(w, h);
+
+      // UI Elements
+      const controls = {
+        posterize: document.getElementById("posterize"),
+        noise: document.getElementById("noise"),
+        warp: document.getElementById("warp"),
+        dynamicThresh: document.getElementById("dynamicThresh"),
+        morphSlider: document.getElementById("morph"),
+        autoMorph: document.getElementById("autoMorph"),
+      };
+
+      let imgA = new Image();
+      let imgB = new Image();
+      imgA.crossOrigin = imgB.crossOrigin = "anonymous";
+      imgA.src = "https://picsum.photos/400/400?random=10";
+      imgB.src = "https://picsum.photos/400/400?random=20";
+
+      let ready = 0;
+      imgA.onload = () => {
+        ready++;
+        if (ready === 2) start();
+      };
+      imgB.onload = () => {
+        ready++;
+        if (ready === 2) start();
+      };
+
+      function getImagePixels(img) {
+        const off = document.createElement("canvas");
+        off.width = w;
+        off.height = h;
+        const octx = off.getContext("2d");
+        octx.drawImage(img, 0, 0, w, h);
+        return octx.getImageData(0, 0, w, h).data;
+      }
+
+      let dataA, dataB;
+
+      function start() {
+        dataA = getImagePixels(imgA);
+        dataB = getImagePixels(imgB);
+        requestAnimationFrame(draw);
+      }
+
+      function draw(time) {
+        requestAnimationFrame(draw);
+        const t = time * 0.001;
+        const pixels = buffer.data;
+
+        let morph = controls.autoMorph.checked
+          ? (Math.sin(t * 0.5) + 1) / 2
+          : parseFloat(controls.morphSlider.value);
+
+        let thresh1 = controls.dynamicThresh.checked
+          ? 60 + 40 * Math.sin(t * 0.7)
+          : 85;
+        let thresh2 = controls.dynamicThresh.checked
+          ? 160 + 40 * Math.cos(t * 0.6)
+          : 170;
+
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const i = (x + y * w) * 4;
+
+            // Optional warp
+            let dx = 0,
+              dy = 0;
+            if (controls.warp.checked) {
+              const warpStrength = 10;
+              dx = Math.sin((x + t * 20) * 0.03 + y * 0.005) * warpStrength;
+              dy = Math.cos((y + t * 15) * 0.03 + x * 0.005) * warpStrength;
+            }
+
+            const xi = Math.min(w - 1, Math.max(0, Math.floor(x + dx)));
+            const yi = Math.min(h - 1, Math.max(0, Math.floor(y + dy)));
+            const warpedIdx = (xi + yi * w) * 4;
+
+            let r = lerp(dataA[warpedIdx], dataB[warpedIdx], morph);
+            let g = lerp(dataA[warpedIdx + 1], dataB[warpedIdx + 1], morph);
+            let b = lerp(dataA[warpedIdx + 2], dataB[warpedIdx + 2], morph);
+            let br = (r + g + b) / 3;
+
+            let final;
+            if (controls.posterize.checked) {
+              if (br < thresh1) {
+                final = 0;
+              } else if (br > thresh2) {
+                final = 255;
+              } else if (controls.noise.checked) {
+                const n = (Math.random() - 0.5) * 2; // valore tra -1 e 1
+                final = 127 + n * 40;
+              } else {
+                final = 127;
+              }
+            } else {
+              final = br;
+            }
+
+            pixels[i] = pixels[i + 1] = pixels[i + 2] = final;
+            pixels[i + 3] = 255;
+          }
+        }
+
+        ctx.putImageData(buffer, 0, 0);
+        ctx.drawImage(canvas, 0, 0, w, h, 0, 0, canvas.width, canvas.height);
+      }
+
+      function lerp(a, b, t) {
+        return a * (1 - t) + b * t;
+      }
+    </script>
+  </body>
+</html>

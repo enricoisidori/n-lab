@@ -1,0 +1,15 @@
+{
+  "name": "threejs-text-chaos",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "^0.152.2"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}

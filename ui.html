@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Perlin Pixel Sorting</title>
+    <style>
+      body {
+        margin: 0;
+        background: black;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+
+    <!-- ✅ SimplexNoise UMD per uso diretto -->
+    <script src="https://cdn.jsdelivr.net/npm/simplex-noise@2.4.0/simplex-noise.min.js"></script>
+
+    <script>
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+
+      let width, height;
+      let cols = 20;
+      let rows = 70;
+      let cellW, cellH;
+
+      const simplex = new SimplexNoise();
+      let t = 0;
+
+      function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        cellW = width / cols;
+        cellH = height / rows;
+      }
+
+      window.addEventListener("resize", resize);
+      resize();
+
+      function generateNoiseGrid(time) {
+        const grid = [];
+        for (let x = 0; x < cols; x++) {
+          grid[x] = [];
+          for (let y = 0; y < rows; y++) {
+            const nx = x / cols;
+            const ny = y / rows;
+
+            let value = simplex.noise3D(nx * 2, ny * 2, time * 0.2);
+            value += Math.sin(y * 0.2 + time * 0.5) * 0.3;
+            value += (Math.random() - 0.5) * 0.05;
+
+            grid[x][y] = value;
+          }
+        }
+        return grid;
+      }
+
+      function draw(grid) {
+        for (let x = 0; x < cols; x++) {
+          const column = grid[x].map((v, y) => ({ value: v, y }));
+          column.sort((a, b) => a.value - b.value);
+
+          for (let y = 0; y < rows; y++) {
+            const brightness = Math.floor(((column[y].value + 1) / 2) * 200);
+            ctx.fillStyle = `rgb(${brightness}, ${brightness}, ${brightness})`;
+            ctx.fillRect(x * cellW, y * cellH, cellW + 1, cellH + 1);
+          }
+        }
+      }
+
+      function animate() {
+        const grid = generateNoiseGrid(t);
+        draw(grid);
+        t += 0.002;
+        requestAnimationFrame(animate);
+      }
+
+      animate();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Real Morph Posterize</title>
+    <style>
+      body {
+        margin: 0;
+        background: black;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <script>
+      const canvas = document.getElementById("c");
+      const ctx = canvas.getContext("2d");
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const scale = 0.3;
+      const w = Math.floor(canvas.width * scale);
+      const h = Math.floor(canvas.height * scale);
+
+      const buffer = ctx.createImageData(w, h);
+
+      let imgA = new Image();
+      let imgB = new Image();
+      imgA.crossOrigin = imgB.crossOrigin = "anonymous";
+      imgA.src = "https://picsum.photos/300/300?random=10";
+      imgB.src = "https://picsum.photos/300/300?random=11";
+
+      let ready = 0;
+      imgA.onload = () => {
+        ready++;
+        if (ready === 2) start();
+      };
+      imgB.onload = () => {
+        ready++;
+        if (ready === 2) start();
+      };
+
+      function getImagePixels(img) {
+        let off = document.createElement("canvas");
+        off.width = w;
+        off.height = h;
+        let octx = off.getContext("2d");
+        octx.drawImage(img, 0, 0, w, h);
+        return octx.getImageData(0, 0, w, h).data;
+      }
+
+      let dataA, dataB;
+
+      function start() {
+        dataA = getImagePixels(imgA);
+        dataB = getImagePixels(imgB);
+        requestAnimationFrame(draw);
+      }
+
+      function draw(t) {
+        requestAnimationFrame(draw);
+        t *= 0.001;
+        const pixels = buffer.data;
+
+        let thresh1 = 60 + 40 * Math.sin(t * 0.8);
+        let thresh2 = 160 + 40 * Math.cos(t * 0.5);
+
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const i = (x + y * w) * 4;
+
+            // Morphing progress: sinusoide per andare avanti e indietro
+            const morph = (Math.sin(t * 0.5) + 1) / 2;
+
+            // Interpolazione tra immagini
+            let r = lerp(dataA[i], dataB[i], morph);
+            let g = lerp(dataA[i + 1], dataB[i + 1], morph);
+            let b = lerp(dataA[i + 2], dataB[i + 2], morph);
+            let br = (r + g + b) / 3;
+
+            // Posterize animato
+            let final;
+            if (br < thresh1) {
+              final = 0;
+            } else if (br > thresh2) {
+              final = 255;
+            } else {
+              // noise coerente nel tempo
+              let noise = Math.sin((x + y * 1234) * 0.5 + t * 5) * 30;
+              final = 127 + noise;
+            }
+
+            pixels[i] = pixels[i + 1] = pixels[i + 2] = final;
+            pixels[i + 3] = 255;
+          }
+        }
+
+        // Draw on full canvas
+        ctx.putImageData(buffer, 0, 0);
+        ctx.drawImage(canvas, 0, 0, w, h, 0, 0, canvas.width, canvas.height);
+      }
+
+      function lerp(a, b, t) {
+        return a * (1 - t) + b * t;
+      }
+    </script>
+  </body>
+</html>

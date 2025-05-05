@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Posterize & Noise</title>
+    <style>
+      body {
+        margin: 0;
+        background: black;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <script>
+      const canvas = document.getElementById("c");
+      const ctx = canvas.getContext("2d");
+      let img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = "https://picsum.photos/300/300"; // oppure usa una tua immagine
+
+      img.onload = () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        animate();
+      };
+
+      let t = 0;
+      function animate() {
+        requestAnimationFrame(animate);
+        t += 0.005;
+
+        const w = canvas.width;
+        const h = canvas.height;
+
+        // Draw the source image to an offscreen canvas
+        const buffer = document.createElement("canvas");
+        const bctx = buffer.getContext("2d");
+        const scale = 0.25; // reduce resolution
+        buffer.width = w * scale;
+        buffer.height = h * scale;
+
+        // draw and stretch image
+        bctx.drawImage(img, 0, 0, buffer.width, buffer.height);
+
+        const imgData = bctx.getImageData(0, 0, buffer.width, buffer.height);
+        const data = imgData.data;
+
+        for (let y = 0; y < buffer.height; y++) {
+          for (let x = 0; x < buffer.width; x++) {
+            const i = (x + y * buffer.width) * 4;
+            const r = data[i],
+              g = data[i + 1],
+              b = data[i + 2];
+            const brightness = (r + g + b) / 3;
+
+            // Posterize levels
+            let out;
+            if (brightness < 85) {
+              out = 0; // black
+            } else if (brightness > 170) {
+              out = 255; // white
+            } else {
+              const noise = Math.random() * 60 - 30; // subtle noise around midgray
+              out = 127 + noise;
+            }
+
+            data[i] = data[i + 1] = data[i + 2] = out;
+            data[i + 3] = 255;
+          }
+        }
+
+        bctx.putImageData(imgData, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+        ctx.drawImage(buffer, 0, 0, w, h); // upscale to canvas size
+      }
+    </script>
+  </body>
+</html>

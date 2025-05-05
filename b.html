@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Glitched Noise Barcode Grid</title>
+    <style>
+      body {
+        margin: 0;
+        background: #666;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+
+    <!-- Simplex Noise Library -->
+    <script src="https://cdn.jsdelivr.net/npm/simplex-noise@2.4.0/simplex-noise.min.js"></script>
+
+    <script>
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+
+      let width, height;
+      let cols = 14;
+      let rows = 80;
+      let colW, rowH;
+
+      const simplex = new SimplexNoise();
+      const maskBlocks = [];
+
+      function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        colW = width / cols;
+        rowH = height / rows;
+
+        // Rigenera blocchi mascheranti
+        maskBlocks.length = 0;
+        for (let i = 0; i < 8; i++) {
+          maskBlocks.push({
+            x: Math.floor(Math.random() * cols),
+            y: Math.floor(Math.random() * rows),
+            h: Math.floor(Math.random() * 10 + 3),
+            w: 1 + Math.floor(Math.random() * 2),
+            color: Math.random() < 0.5 ? "#888" : "#fff",
+            tOffset: Math.random() * 10,
+            jitter: Math.random() * 2,
+          });
+        }
+      }
+
+      window.addEventListener("resize", resize);
+      resize();
+
+      let t = 0;
+
+      function drawGrid(time) {
+        ctx.clearRect(0, 0, width, height);
+
+        for (let x = 0; x < cols; x++) {
+          for (let y = 0; y < rows; y++) {
+            const nx = x / cols;
+            const ny = y / rows;
+
+            let noise = simplex.noise3D(nx * 3, ny * 4, time * 0.4);
+            noise += (Math.random() - 0.5) * 0.2; // glitch jitter
+            const brightness = Math.floor(((noise + 1) / 2) * 255);
+
+            ctx.fillStyle = `rgb(${brightness}, ${brightness}, ${brightness})`;
+            ctx.fillRect(x * colW, y * rowH, colW, rowH);
+          }
+        }
+
+        // Maschere glitchate
+        for (let block of maskBlocks) {
+          const wiggle =
+            simplex.noise2D(block.x, t * 0.5 + block.tOffset) *
+            block.jitter *
+            rowH *
+            5;
+          ctx.fillStyle = block.color;
+          ctx.fillRect(
+            block.x * colW,
+            (block.y * rowH + wiggle) % height,
+            block.w * colW,
+            block.h * rowH
+          );
+        }
+      }
+
+      function animate() {
+        drawGrid(t);
+        t += 0.01;
+        requestAnimationFrame(animate);
+      }
+
+      animate();
+    </script>
+  </body>
+</html>

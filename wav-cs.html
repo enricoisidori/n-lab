@@ -9,9 +9,11 @@
         flex-direction: row;
         align-items: flex-start;
         gap: 20px;
+        margin: 0;
+        padding: 0;
       }
       canvas {
-        border: 0px solid #ccc;
+        border: 1px solid #ccc;
         flex: 1;
       }
       .controls-wrapper {
@@ -20,11 +22,14 @@
         flex-direction: column;
         gap: 20px;
         min-width: 240px;
+        margin-top: 100px;
+        padding-left: 10px;
       }
       .slider-container {
         display: flex;
         flex-direction: column;
         width: 100%;
+        mix-blend-mode: difference;
       }
       label {
         font-size: 12px;
@@ -48,7 +53,7 @@
           min="0"
           max="1"
           step="0.01"
-          value="0.5"
+          value="0.33"
         />
       </div>
       <div class="slider-container">
@@ -57,9 +62,9 @@
           type="range"
           id="lineWidth"
           min="0.1"
-          max="5"
+          max="8"
           step="0.1"
-          value="2"
+          value="4"
         />
       </div>
       <div class="slider-container">
@@ -70,18 +75,18 @@
           min="0"
           max="1"
           step="0.01"
-          value="0.3"
+          value="0.50"
         />
       </div>
       <div class="slider-container">
-        <label>Global Smoothness = <span id="valSmoothness">20</span></label>
+        <label>Global Smoothness = <span id="valSmoothness">100</span></label>
         <input
           type="range"
           id="globalSmoothness"
           min="1"
           max="100"
           step="1"
-          value="100"
+          value="42"
         />
       </div>
       <div class="slider-container">
@@ -92,18 +97,30 @@
           min="0"
           max="1"
           step="0.01"
-          value="0.2"
+          value="0.33"
         />
       </div>
       <div class="slider-container">
-        <label>Accent Position X1 = <span id="valAccentX">0.5</span></label>
+        <label>Accent Position X1 = <span id="valAccentX">0.75</span></label>
         <input
           type="range"
           id="accentX"
           min="0"
           max="1"
           step="0.01"
-          value="0.5"
+          value="0.75"
+        />
+        <label
+          >Accent Intensity Multiplier =
+          <span id="valAccentIntensity">1</span></label
+        >
+        <input
+          type="range"
+          id="accentIntensity"
+          min="0"
+          max="3"
+          step="0.1"
+          value="1"
         />
         <div class="row">
           <label><input type="checkbox" id="enableAccentX2" /> Enable X2</label>
@@ -127,7 +144,18 @@
           min="0.1"
           max="5"
           step="0.1"
-          value="1"
+          value="1.9"
+        />
+      </div>
+      <div class="slider-container">
+        <label>Wave Phase Offset = <span id="valPhaseOffset">0</span></label>
+        <input
+          type="range"
+          id="phaseOffset"
+          min="0"
+          max="6.28"
+          step="0.01"
+          value="1.9"
         />
       </div>
       <div class="slider-container">
@@ -138,38 +166,76 @@
         <label><input type="checkbox" id="invertColors" /> Invert Colors</label>
         <button id="exportBtn">Download PNG</button>
       </div>
+      <div class="slider-container">
+        <label>Waveform Type</label>
+        <select id="waveformType">
+          <option value="sine">Sine</option>
+          <option value="square">Square</option>
+          <option value="triangle">Triangle</option>
+          <option value="sawtooth">Sawtooth</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div
+        class="slider-container"
+        id="customWaveContainer"
+        style="display: none"
+      >
+        <label>Custom Wave Formula (JS)</label>
+        <textarea
+          id="customWaveFormula"
+          rows="2"
+          style="font-family: monospace"
+        >
+Math.sin(x / smooth + phase)</textarea
+        >
+      </div>
     </div>
+    <!-- <canvas id="waveCanvas" width="3000" height="600"></canvas> -->
+    <!-- <canvas id="waveCanvas" width="1500" height="300"></canvas> -->
+    <!-- <canvas id="waveCanvas" width="5700" height="600"></canvas> -->
     <canvas id="waveCanvas" width="14014" height="300"></canvas>
     <script>
       const canvas = document.getElementById("waveCanvas");
       const ctx = canvas.getContext("2d");
+      // const cols = 24;
+      // const rows = 5;
+
       const cols = 234;
       const rows = 5;
 
+      // const cols = 114;
+      // const rows = 12;
+
       // const guideMask = [
       //   [
-      //     0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
-      //     0, 0, 0,
+      //     0.51, 0.87, 0.87, 0.87, 0.87, 0.54, 0.1, 0.05, 0.48, 0.83, 0.85, 0.77,
+      //     0.1, 0.1, 0.08, 0.05, 0.52, 0.79, 0.87, 0.61, 0.18, 0.08, 0.05, 0.08,
       //   ],
       //   [
-      //     0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
-      //     0, 0, 0,
+      //     0.52, 0.87, 0.87, 0.54, 0.85, 0.87, 0.55, 0.12, 0.49, 0.83, 0.85,
+      //     0.77, 0.12, 0.12, 0.1, 0.08, 0.53, 0.79, 0.87, 0.61, 0.2, 0.1, 0.08,
+      //     0.1,
       //   ],
       //   [
-      //     0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-      //     1, 0, 0,
+      //     0.51, 0.87, 0.87, 0.53, 0.53, 0.85, 0.86, 0.53, 0.52, 0.83, 0.85,
+      //     0.87, 0.83, 0.83, 0.85, 0.85, 0.86, 0.87, 0.87, 0.87, 0.85, 0.85,
+      //     0.85, 0.61,
       //   ],
       //   [
-      //     0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
-      //     0, 0, 0,
+      //     0.52, 0.87, 0.87, 0.53, 0.11, 0.51, 0.85, 0.86, 0.56, 0.83, 0.85,
+      //     0.77, 0.13, 0.13, 0.1, 0.1, 0.54, 0.79, 0.87, 0.62, 0.22, 0.12, 0.1,
+      //     0.11,
       //   ],
       //   [
-      //     0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
-      //     0, 0, 0,
+      //     0.51, 0.87, 0.87, 0.53, 0.08, 0.1, 0.52, 0.84, 0.86, 0.87, 0.85, 0.77,
+      //     0.12, 0.12, 0.08, 0.05, 0.52, 0.79, 0.87, 0.61, 0.18, 0.08, 0.05,
+      //     0.08,
       //   ],
       // ];
 
       const guideMask = [
+        //cs
         [
           1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
           0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0,
@@ -237,6 +303,94 @@
         ],
       ];
 
+      // const guideMask = [
+      //   //mobile
+      //   [
+      //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+      //     0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0,
+      //     0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1,
+      //     1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1,
+      //     1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+      //   ],
+      //   [
+      //     1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1,
+      //     0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0,
+      //     0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      //     1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+      //     1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+      //   ],
+      //   [
+      //     1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1,
+      //     0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0,
+      //     0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      //     1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+      //     0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
+      //   ],
+      //   [
+      //     1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1,
+      //     0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1,
+      //     0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      //     1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+      //     0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+      //   ],
+      //   [
+      //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+      //     0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1,
+      //     1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+      //     1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+      //     0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+      //   ],
+      //   [
+      //     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      //     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      //     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      //     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      //     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      //   ],
+      //   [
+      //     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      //     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      //     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      //     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      //     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      //   ],
+      //   [
+      //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1,
+      //     0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1,
+      //     1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0,
+      //     0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1,
+      //     1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1,
+      //   ],
+      //   [
+      //     1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1,
+      //     0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0,
+      //     0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1,
+      //     0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1,
+      //     1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0,
+      //   ],
+      //   [
+      //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1,
+      //     0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1,
+      //     1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1,
+      //     1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1,
+      //     1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0,
+      //   ],
+      //   [
+      //     0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1,
+      //     0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1,
+      //     1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0,
+      //     1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1,
+      //     1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0,
+      //   ],
+      //   [
+      //     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+      //     0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0,
+      //     0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0,
+      //     0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1,
+      //     1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0,
+      //   ],
+      // ];
+
       function mulberry32(seed) {
         return function () {
           let t = (seed += 0x6d2b79f5);
@@ -261,7 +415,12 @@
         const y = row * rowHeight;
 
         ctx.beginPath();
-        let phaseShift = rng() * Math.PI * 2;
+        const globalPhaseOffset = parseFloat(
+          document.getElementById("phaseOffset").value
+        );
+        document.getElementById("valPhaseOffset").textContent =
+          globalPhaseOffset.toFixed(2);
+        let phaseShift = rng() * Math.PI * 2 + globalPhaseOffset;
 
         for (let x = 0; x < width; x++) {
           const col = Math.floor(x / colWidth);
@@ -277,16 +436,56 @@
 
           const localSmooth = smoothness + rng() * smoothness * freqJitter;
           const distanceFromAccent = Math.abs(x / width - accentX);
+          const accentMultiplier = parseFloat(
+            document.getElementById("accentIntensity").value
+          );
+          document.getElementById("valAccentIntensity").textContent =
+            accentMultiplier;
           const accentFactor = Math.max(0, 1 - distanceFromAccent * 3);
-          const amp = amplitude + accentFactor * 0.4;
-          const variation =
-            ((Math.sin(x / localSmooth + phaseShift) +
-              (rng() * 2 - 1) * noise) *
-              amp *
-              ampFactor *
-              rowHeight) /
-            2;
+          const amp = amplitude + accentFactor * (0.4 * accentMultiplier);
+          const phase = x / localSmooth + phaseShift;
 
+          let value = 0;
+          const waveType = document.getElementById("waveformType").value;
+          switch (waveType) {
+            case "sine":
+              value = Math.sin(phase);
+              break;
+            case "square":
+              value =
+                Math.sin(x / smooth + Math.sin(x / 100 + phase)) *
+                Math.sin(x / 250);
+              break;
+            case "triangle":
+              value = (2 * Math.asin(Math.sin(phase))) / Math.PI;
+              break;
+            case "sawtooth":
+              value =
+                2 *
+                (phase / (2 * Math.PI) -
+                  Math.floor(phase / (2 * Math.PI) + 0.5));
+              break;
+            case "custom":
+              try {
+                const userFunc = new Function(
+                  "x",
+                  "smooth",
+                  "phase",
+                  `return ${
+                    document.getElementById("customWaveFormula").value
+                  };`
+                );
+                value = userFunc(x, localSmooth, phase);
+              } catch (e) {
+                console.warn("Custom wave error:", e.message);
+                value = 0;
+              }
+              break;
+          }
+
+          const variation =
+            ((value + (rng() * 2 - 1) * noise) * amp * ampFactor * rowHeight) /
+            2;
           ctx.moveTo(x, y + rowHeight / 2 - variation);
           ctx.lineTo(x, y + rowHeight / 2 + variation);
         }
@@ -301,6 +500,7 @@
         ctx.fillStyle = invert ? "black" : "white";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.strokeStyle = invert ? "white" : "black";
+
         const lineWidth = parseFloat(
           document.getElementById("lineWidth").value
         );
@@ -350,10 +550,17 @@
       }
 
       document
-        .querySelectorAll("input[type=range], input[type=checkbox]")
+        .querySelectorAll("input[type=range], input[type=checkbox], textarea")
         .forEach((input) => {
           input.addEventListener("input", render);
         });
+
+      document.getElementById("waveformType").addEventListener("change", () => {
+        const selected = document.getElementById("waveformType").value;
+        document.getElementById("customWaveContainer").style.display =
+          selected === "custom" ? "block" : "none";
+        render();
+      });
 
       document.getElementById("exportBtn")?.addEventListener("click", () => {
         const link = document.createElement("a");
@@ -365,7 +572,8 @@
       render();
 
       window.addEventListener("resize", () => {
-        resizeCanvas();
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight / 2;
         render();
       });
     </script>

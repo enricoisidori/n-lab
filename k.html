@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>K-Space Simulation</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: black;
+      }
+      canvas {
+        display: block;
+        image-rendering: pixelated;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+
+    <!-- Librerie necessarie -->
+    <script src="https://cdn.jsdelivr.net/npm/ndarray@1.0.18/ndarray.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ndarray-fft@1.0.0/fft.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ndarray-scratch@1.2.1/scratch.min.js"></script>
+
+    <script>
+      const size = 256;
+      const canvas = document.getElementById("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+
+      const ndarray = window.ndarray;
+      const fft = window.fft;
+      const pool = window.require("ndarray-scratch");
+
+      const real = pool.zeros([size, size]);
+      const imag = pool.zeros([size, size]);
+      const output = ctx.createImageData(size, size);
+
+      let t = 0;
+
+      function generatePattern() {
+        for (let y = 0; y < size; y++) {
+          for (let x = 0; x < size; x++) {
+            const value =
+              Math.sin((x + t) * 0.1) + Math.cos((y + t * 0.5) * 0.1);
+            real.set(x, y, value);
+            imag.set(x, y, 0);
+          }
+        }
+      }
+
+      function renderKSpace() {
+        fft(1, real, imag); // forward FFT
+
+        for (let y = 0; y < size; y++) {
+          for (let x = 0; x < size; x++) {
+            const cx = (x + size / 2) % size;
+            const cy = (y + size / 2) % size;
+
+            const re = real.get(cx, cy);
+            const im = imag.get(cx, cy);
+            let mag = Math.log(1 + Math.sqrt(re * re + im * im)) * 25;
+            mag = Math.min(255, Math.max(0, mag));
+
+            const idx = (y * size + x) * 4;
+            output.data[idx] = mag;
+            output.data[idx + 1] = mag;
+            output.data[idx + 2] = mag;
+            output.data[idx + 3] = 255;
+          }
+        }
+
+        ctx.putImageData(output, 0, 0);
+        fft(-1, real, imag); // inverse to reset
+      }
+
+      function loop() {
+        generatePattern();
+        renderKSpace();
+        t++;
+        requestAnimationFrame(loop);
+      }
+
+      loop();
+    </script>
+  </body>
+</html>
